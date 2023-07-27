@@ -30,6 +30,8 @@
     [Decimal.(of_string "1.00" mod of_string "0.1")] returns the expected
     "0.00"). *)
 
+(** Signals are used to control the behaviour of the decimal functions under
+    exceptional conditions. *)
 module Signal : sig
   type id
   (** Unique identifier of a signal. *)
@@ -178,35 +180,22 @@ module Signal : sig
 
       In all cases, Inexact, Rounded, and Subnormal will also be raised. *)
 end
-(** Signals are used to control the behaviour of the decimal functions under
-    exceptional conditions. *)
 
+(** Settings that control precision, rounding mode, exceptional behaviour, etc. *)
 module Context : sig
   type round =
-  | Down
-  (** Round towards 0; truncate. *)
-
-  | Up
-  (** Round away from 0. *)
-
-  | Half_up
-  (** Round up if last significant digit is >= 5, else round down. *)
-
-  | Half_down
-  (** Round up if last significant digit is > 5, else round down. *)
-
-  | Half_even
-  (** Round up if last significant digit is > 5 or next-to-last significant
+    | Down  (** Round towards 0; truncate. *)
+    | Up  (** Round away from 0. *)
+    | Half_up
+        (** Round up if last significant digit is >= 5, else round down. *)
+    | Half_down
+        (** Round up if last significant digit is > 5, else round down. *)
+    | Half_even
+        (** Round up if last significant digit is > 5 or next-to-last significant
       digit is odd, else round down. *)
-
-  | Ceiling
-  (** Round up if last significant digit is > 0, else no change. *)
-
-  | Floor
-  (** Round down if last significant digit is > 0, else no change. *)
-
-  | Zero_five_up
-  (** Round zero or five away from 0. *)
+    | Ceiling  (** Round up if last significant digit is > 0, else no change. *)
+    | Floor  (** Round down if last significant digit is > 0, else no change. *)
+    | Zero_five_up  (** Round zero or five away from 0. *)
 
   val string_of_round : round -> string
 
@@ -282,7 +271,6 @@ module Context : sig
   val pp : Format.formatter -> t -> unit
   (** [pp f t] pretty-prints the context [t]. *)
 end
-(** Settings that control precision, rounding mode, exceptional behaviour, etc. *)
 
 type t
 (** A decimal floating-point number. All operations are done in radix (base) 10. *)
@@ -295,13 +283,16 @@ val neg_infinity : t
 val nan : t
 val one : t
 val zero : t
-
 val is_nan : t -> bool
 val is_normal : ?context:Context.t -> t -> bool
 val is_finite : t -> bool
 val is_infinite : t -> bool
 val is_signed : t -> bool
+
 val is_integral : t -> bool
+(** [is_integral t] is whether [t] is an integer (whole number) or not.
+
+    @since 0.4.0 *)
 
 val of_bigint : Z.t -> t
 val of_int : int -> t
@@ -319,7 +310,9 @@ val of_yojson :
     @since 0.3.0 *)
 
 val of_float : ?context:Context.t -> float -> t
-[@@alert lossy "Suffers from floating-point precision loss. Other constructors should be preferred."]
+  [@@alert
+    lossy
+      "Suffers from floating-point precision loss. Other constructors should be preferred."]
 (** [of_float ?context float] is the decimal representation of the [float]. This
     suffers from floating-point precision loss; the other constructors should be
     preferred. *)
@@ -338,10 +331,14 @@ val to_yojson : t -> [> `String of string]
     @since 0.3.0 *)
 
 val to_float : ?context:Context.t -> t -> float
-[@@alert lossy "Suffers from floating-point precision loss. Other serializations should be preferred."]
+  [@@alert
+    lossy
+      "Suffers from floating-point precision loss. Other serializations should be preferred."]
 (** [to_float ?context decimal] is the float representation of the [decimal]. This
     suffers from floating-point precision loss; the other serializations should be
-    preferred. *)
+    preferred.
+
+    @since 0.4.0 *)
 
 val pp : Format.formatter -> t -> unit
 
@@ -380,14 +377,16 @@ val quantize : ?context:Context.t -> ?round:Context.round -> exp:t -> t -> t
     the same as that of [exp]. *)
 
 val round : ?n:int -> t -> t
-[@@alert exn "Invalid_argument if t is ∞ or NaN"]
+  [@@alert exn "Invalid_argument if t is ∞ or NaN"]
 (** [round ?n t] is [t] rounded to the nearest integer, or to a given precision.
     If [n] is [None], round [t] to the nearest integer. If [t] lies exactly
     halfway between two integers then it is rounded to the even integer. *)
 
 val shift : ?context:Context.t -> t -> t -> t
 (** [shift ?context t1 t2] shifts [t1] by [t2] decimal places, where [t2]
-    must be integral. *)
+    must be integral.
+
+    @since 0.4.0 *)
 
 val sign : t -> int
 (** [sign t] is [-1] if t is negative, and [1] otherwise. *)
@@ -417,28 +416,30 @@ val fma : ?context:Context.t -> first_mul:t -> then_add:t -> t -> t
     product, then a final rounding is performed. *)
 
 val sqrt : ?context:Context.t -> t -> t
-(** [sqrt ?context x] is the square root of [x] *)
+(** [sqrt ?context x] is the square root of [x].
+
+    @since 0.4.0 *)
 
 val scaleb : ?context:Context.t -> t -> t -> t
-(** [scaleb ?context t1 t2] returns [t1] after scaling its exponent by [t2] *)
+(** [scaleb ?context t1 t2] returns [t1] after scaling its exponent by [t2].
+
+    @since 0.4.0 *)
 
 val ( ~- ) : t -> t
 val ( ~+ ) : t -> t
-
 val ( = ) : t -> t -> bool
 val ( <> ) : t -> t -> bool
 
 val ( == ) : t -> t -> bool
-[@@alert phys_eq "Physical equality of decimals is rarely useful"]
+  [@@alert phys_eq "Physical equality of decimals is rarely useful"]
 
 val ( != ) : t -> t -> bool
-[@@alert phys_eq "Physical equality of decimals is rarely useful"]
+  [@@alert phys_eq "Physical equality of decimals is rarely useful"]
 
 val ( < ) : t -> t -> bool
 val ( > ) : t -> t -> bool
 val ( <= ) : t -> t -> bool
 val ( >= ) : t -> t -> bool
-
 val ( + ) : t -> t -> t
 val ( - ) : t -> t -> t
 val ( * ) : t -> t -> t
